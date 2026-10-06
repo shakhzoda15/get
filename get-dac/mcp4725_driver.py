@@ -1,5 +1,5 @@
 import smbus  # 1. Импортируем модуль работы с I2C-шиной
-
+import RPi.GPIO as GPIO
 
 class MCP4725:
     def __init__(self, dynamic_range, address=0x61, verbose=True):
@@ -43,7 +43,7 @@ class MCP4725:
 
 if __name__ == "__main__":
     try:
-        dac = MCP4725(3.290, 0x61, True)
+        dac = MCP4725(5.11, 0x61, True)
 
         while True:
             try:
