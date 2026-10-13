@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 
+
 class R2R_ADC:
     def __init__(self, dynamic_range, compare_time=0.01, verbose=False):
         self.dynamic_range = dynamic_range
@@ -28,22 +29,30 @@ class R2R_ADC:
             self.number_to_dac(number)
             time.sleep(self.compare_time)
             if GPIO.input(self.comp_gpio):
-                if self.verbose:
-                    print(f"Срабатывание на числе {number}")
                 return number
         return max_number
 
     def get_sc_voltage(self):
         number = self.sequential_counting_adc()
         max_number = 2 ** len(self.bits_gpio) - 1
-        voltage = self.dynamic_range * number / max_number
-        return voltage
+        return self.dynamic_range * number / max_number
 
-if __name__ == "__main__":
-    try:
-        adc = R2R_ADC(dynamic_range=3.3, verbose=False)
-        while True:
-            voltage = adc.get_sc_voltage()
-            print(f"Измеренное напряжение: {voltage:.3f} В")
-    finally:
-        del adc
+    def successive_approximation_adc(self):
+        max_number = 2 ** len(self.bits_gpio) - 1
+        result = 0
+        for bit in range(len(self.bits_gpio) - 1, -1, -1):
+            trial = result | (1 << bit)
+            self.number_to_dac(trial)
+            time.sleep(self.compare_time)
+            if not GPIO.input(self.comp_gpio):
+                result = trial
+            if self.verbose:
+                print(f"bit={bit}  trial={trial:3d}  result={result:3d}")
+        if result < max_number:
+            result += 1
+        return result
+
+    def get_sar_voltage(self):
+        number = self.successive_approximation_adc()
+        max_number = 2 ** len(self.bits_gpio) - 1
+        return self.dynamic_range * number / max_number
