@@ -1,11 +1,61 @@
-import RPi.GPIO as GPIO
+import RPi.GPIO as gpio
 import time
-GPIO.setmode(GPIO.BCM)
-led = 26
-GPIO.setup(led, GPIO.OUT)
-state = 0
-period = 1.0
-while True:
-    GPIO.output(led, state)
-    state = not state
-    time.sleep(period)
+from matplotlib import pyplot 
+gpio.setmode(gpio.BCM)
+
+leds = [21, 20, 16, 12, 7, 8, 25, 24]
+gpio.setup(leds, gpio.OUT)
+
+dac=[26, 19, 13, 6, 5, 11, 9, 10]
+gpio.setup(dac, gpio.OUT, initial=gpio.HIGH)
+
+comp=4
+troyka=17
+
+gpio.setup(troyka, gpio.OUT, initial=gpio.HIGH)
+gpio.setup(comp, gpio.IN)
+
+def adc( ):
+    k = 0
+    for i in range(7, -1, -1):
+        k+=2**i 
+        gpio.output (dac, perev(k))
+        time.sleep (0.005)
+        if gpio.input (comp)==0:
+            k -= 2**i
+    return k
+
+def perev(a):
+    return [int (elem) for elem in bin(a) [2:].zfill (8)]
+try:
+napr=0
+result_ismer= []
+time_start=time.time()
+count=0
+
+print( ‘начало зарядки конденсатора’)
+while napr<256*0.02:
+    napr=adc()
+    result_ismer.append(napr)
+    time.sleep(0)
+    count +=1
+    gpio.output(leds, perev(napr))
+gpio.setup(troyka, gpio.OUT, initial=gpio.LOW)
+
+print(‘начало разрядки конденсатора’)
+while napr>256*0.02:
+    napr=adc()
+    result_ismer.append(napr)
+    time.sleep(0)
+    count += 1
+    gpio.output(leds, perev(napr))
+time_experiment=time.time()-time_start
+
+print(‘запись данных в файл’)
+with open(‘data.txt’, 'w') as f:
+    for i in result_ismer:
+        f.write(str(i) + '\n')
+with open(‘settings.txt’, 'w') as f:
+    f. write(str(1/time_experiment/count) + ‘\n’) 
+    f.write(‘0.01289’)
+print(‘общая продолжительность эксперимента {}, период одного измерения {}, средняя частота дискретизации {}, шаг квантования АЦП (}’. format(time_experiment, time_experiment/count, 1/time_experiment.)
